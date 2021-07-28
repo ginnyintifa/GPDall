@@ -1,0 +1,648 @@
+#### functions of 1/3/4
+
+
+mapVCFtoProtUnits = function(vcf_file, 
+                             genoMapped = F,
+                             protMappedGeno_file = NULL,
+                             protUnit_file,
+                             protMappedGeno_outputName = NULL,
+                             vcfMapped_prot_outputName,
+                             vcfMapped_protUnitCount_outputName)
+{
+  
+  vcf = fread(vcf_file, skip = "#CHROM",
+              stringsAsFactors = F, data.table = F)
+  
+  colnames(vcf) = gsub("#","",colnames(vcf))
+  
+  #  protUnit_file = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/sample_protUnit.tsv"
+  
+  
+  if(genoMapped == T)
+  {
+    #protMappedGeno_file = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/protGenoMapped_0a5aa.tsv"
+    p_g = fread(protMappedGeno_file, stringsAsFactors = F, data.table = F)
+    
+  }else{
+    
+    pe = fread(protUnit_file,
+               stringsAsFactors = F, data.table = F)
+    
+    p_g = rbindlist(lapply(1:nrow(pe), function(x) {
+      
+      if(x%%100 ==0)
+        cat(x,"\n")
+      po = IRanges(start = pe$start_position[x], end = pe$end_position[x], names = pe$uniprot_accession[x])
+      
+      r = proteinToGenome(po, EnsDb.Hsapiens.v86, idType = "uniprot_id")
+      
+      ##### gather all of them and take the union of chromosome and position 
+      
+      if(length(r[[1]])>0)
+      { 
+        if("unlistData" %in% slotNames(r[[1]]))
+        {
+          df = r[[1]]@unlistData
+          
+          CHROM = rep(as.character(df@seqnames@values[1]), length(df))
+          gstart = df@ranges@start
+          strand = as.character(df@strand@values[1])
+          
+          gend = df@ranges@width + df@ranges@start -1
+          
+          
+          this_df = data.frame(CHROM, gstart, gend,strand,stringsAsFactors = F)%>%
+            unique()
+          
+          
+        }else{
+          df = r[[1]]
+          
+          CHROM = rep(as.character(df@seqnames@values[1]), length(df))
+          gstart = df@ranges@start
+          strand = as.character(df@strand@values[1])
+          gend = df@ranges@width + df@ranges@start -1
+          
+          
+          this_df = data.frame(CHROM, gstart, gend, strand, stringsAsFactors = F)%>%
+            unique()
+          
+          
+          
+          
+        }
+        
+        lb = unique(this_df)
+        
+        
+        final_df = cbind(pe[rep(x,nrow(lb)),], lb)
+        
+        return(final_df) 
+        
+        
+      }
+      
+      
+    }))
+    
+    
+    write.table(p_g, protMappedGeno_outputName,
+                quote = F, row.names = F, sep = "\t")
+    
+  }
+  
+  
+  ##### the above is to map protein units to chromosome, not mapping chromosome to protein 
+  
+  
+  matched = rbindlist(lapply(1:nrow(vcf), function(x) {
+    
+    
+    #cat(x, "\n")
+    this_chrom = gsub("chr","", vcf$CHROM[x])
+    this_pos = vcf$POS[x]
+    
+    ### find the coor 
+    
+    get_p_g =  p_g%>%
+      dplyr::filter(CHROM == this_chrom)%>%
+      dplyr::filter(gstart <= this_pos, gend >= this_pos)
+    
+    if(nrow(get_p_g)>0)
+    {
+      
+      p_g_info = get_p_g%>%
+        dplyr::mutate(prot_info = paste(uniprot_accession, gene_name, start_position, end_position, unit_name, unit_label, sep = "_"),
+                      geno_info = paste(CHROM, gstart, gend, strand, sep = "_"))%>%
+        dplyr::select(prot_info, geno_info)
+      
+      this_df = cbind(p_g_info, vcf[rep(x, nrow(p_g_info)),])
+      
+      
+      return(this_df)
+    }
+    
+    
+    
+  }),use.names=TRUE)
+  
+  
+  write.table(matched, vcfMapped_prot_outputName,
+              quote = F, row.names = F, sep = "\t")
+  
+  cat("protein units mapped to genome. ","\n")
+  
+  #### aggregate to protein units 
+  
+  if(nrow(matched)>0)
+  {
+    
+    matched_count = matched%>%
+      dplyr::select(-geno_info)%>%
+      dplyr::group_by(prot_info)%>%
+      dplyr::mutate(count = n())
+    
+    
+    
+    write.table(matched_count, vcfMapped_protUnitCount_outputName,
+                quote = F, row.names = F, sep = "\t")
+    
+   return(matched_count)
+     
+  }
+}
+
+
+mapVCFtoGTF= function(vcf_file, 
+                      gtf,   ###change to parsed gtf file 20210709
+                      vcfMapped_gtf_outputName,
+                      vcfMapped_gtfCount_outputName,
+                      vcfMapped_gtf_nonTranslated_outputName,
+                      vcfMapped_gtf_nonTranslatedCount_outputName)
+  
+{
+  
+  
+  
+  match_gtf = function(x,vcf,gtf)
+  {
+    
+    # vcf = vcf_test
+    # if(x%%100 ==0)
+    #  cat(x,"\n")
+    this_chro = vcf$CHROM[x]
+    this_pos = vcf$POS[x]
+    
+    fil_gtf =gtf%>%
+      dplyr::filter(CHRO == this_chro &START <= this_pos & END >= this_pos)
+    
+    ##### parse this portion only 
+    #### parsing takes a lot of time 
+    if(nrow(fil_gtf)>0)
+    {
+      
+      
+      parse_gtf = fil_gtf%>%
+        unique()%>%
+        dplyr::mutate(vcf_chro = this_chro, 
+                      vcf_pos = this_pos)%>%
+        dplyr::select(vcf_chro, vcf_pos, everything())
+      
+      
+    }else{
+      
+      parse_gtf = data.frame(vcf_chro = this_chro, 
+                             vcf_pos = this_pos,
+                             CHRO = this_chro,
+                             SOURCE = "",
+                             FEATURE = "not_specified",
+                             START = "",
+                             END = "",
+                             STRAND = "",
+                             PHASE = "",
+                             gene_id = "",gene_type = "", gene_name = "",  
+                             transcript_id  = "", transcript_type = "", transcript_name = "",
+                             exon_number = "", exon_id ="")
+      
+      
+    }
+    
+    # cat("dim", ncol(parse_gtf), "\n")
+    return(parse_gtf)
+    
+  }
+  
+  
+  
+  
+  # 
+  #vcf_file ="/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/vcf_folder_20210621/0a5aac29-c802-4d26-9924-025eda31f9d7.vcf"
+   #                   gtf = gtf_df
+  #                 vcfMapped_gtf_outputName = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/test_mappted_gtf.tsv"
+  #                 vcfMapped_gtfCount_outputName = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/test_mappted_gtf_counts.tsv"
+  #                   vcfMapped_gtf_nonTranslated_outputName = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/test_mappted_gtf_nonTranslated.tsv"
+  #                 vcfMapped_gtf_nonTranslatedCount_outputName = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/test_mappted_gtf_nonTranslated_counts.tsv"
+
+  #vcf_file = filenames[2] 
+  #gtf = gtf_df
+  
+  
+  
+  vcf = fread(vcf_file, skip = "#CHROM",
+              stringsAsFactors = F, data.table = F)
+  colnames(vcf) = gsub("#","",colnames(vcf))
+  
+  #### the rbindlist function below need to be parallelized 
+  cl <- makeCluster(detectCores()-2)
+  registerDoParallel(cl)
+  
+  #vcf_test = vcf[1:10000,]
+#tt = Sys.time()
+  
+  vcf_mapped_gtf = rbindlist(foreach(x= 1:nrow(vcf), .packages = "dplyr")%dopar% match_gtf(x,vcf,gtf))
+ #et = Sys.time()
+  
+  #### here match_gtf is taken as an object rather than a function, so need to define within the environment 
+  
+  
+  stopCluster(cl) 
+  
+  
+  ################################
+  ###############################
+  ###############################
+  ##############################
+
+
+  
+  vcf_mapped_gtf = vcf_mapped_gtf%>%
+    dplyr::mutate(gtf_info = paste(CHRO, SOURCE, FEATURE, START, END, STRAND, PHASE, gene_name, transcript_name, sep = "_"))%>%
+    unique()
+  
+  write.table(vcf_mapped_gtf, vcfMapped_gtf_outputName,
+              quote = F, row.names = F, sep  = "\t")
+  # 
+  # vcf_mapped_gtf_concise = vcf_mapped_gtf%>%
+  #   dplyr::select(vcf_chro, vcf_pos, gtf_info)%>%
+  #   unique()
+  
+  
+  vcf_mapped_gtf_counts = vcf_mapped_gtf%>%
+    dplyr::select(gtf_info,CHRO, SOURCE, FEATURE, START, END, STRAND, PHASE, gene_name, transcript_name)%>%
+    dplyr::group_by(gtf_info)%>%
+    dplyr::mutate(count = n())%>%
+    unique()
+  
+  
+  
+  write.table(vcf_mapped_gtf_counts, vcfMapped_gtfCount_outputName,
+              quote = F, row.names = F, sep  = "\t")
+  
+  
+  
+  vcf_mapped_gtf_nonTranslated = vcf_mapped_gtf%>%
+    dplyr::filter(FEATURE == "UTR" | FEATURE == "not_specified")%>%
+    unique()
+  
+  
+  write.table(vcf_mapped_gtf_nonTranslated, vcfMapped_gtf_nonTranslated_outputName,
+              quote = F, row.names = F, sep  = "\t")
+  
+  
+  vcf_mapped_gtf_nonTranslated_counts = vcf_mapped_gtf_nonTranslated%>%
+    dplyr::select(gtf_info,CHRO, SOURCE, FEATURE, START, END, STRAND, PHASE, gene_name, transcript_name)%>%
+    dplyr::group_by(gtf_info)%>%
+    dplyr::mutate(count = n())%>%
+    unique()
+  
+  write.table(vcf_mapped_gtf_nonTranslated_counts, vcfMapped_gtf_nonTranslatedCount_outputName,
+              quote = F, row.names = F, sep  = "\t")
+  return(vcf_mapped_gtf_counts)
+  
+}
+
+
+
+
+
+
+defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of 5' UTR, default to 1000
+                            down3UTR_bp = 1000, #### how many base pair downstream of 3' UTR, default to 1000
+                            gtf_border,# = gene_boarder,
+                            geneList, ### a list of genes of interst, default to all genes in the current gtf file
+                            unitFile_name)
+  
+{
+  
+  all_chros = unique(gtf_border$CHRO)
+  
+  get_unit = rbindlist(lapply(1:length(all_chros), function(x) {
+    
+    #### need to fix a bug of overlapping genes 
+    this_chro = gtf_border%>%
+      dplyr::filter(CHRO == all_chros[x])
+    
+    
+    up_start = unlist(lapply(1:nrow(this_chro), function(k) {
+      it = max(1, this_chro$TSS[k]-1000)
+      if(k>1)
+      {
+        itt = max(it, (this_chro$TES[k-1]+1))
+      }else{
+        itt = it
+      }
+      return(itt)
+    }
+    ))
+    
+    down_end = unlist(lapply(1:nrow(this_chro), function(k) {
+      
+      it =  this_chro$TES[k] +1000
+      
+      if(k<nrow(this_chro))
+      {
+        
+        itt = min(it, (this_chro$TSS[k+1]-1))
+        
+      }else{
+        itt = it
+      }
+      
+      return(itt)
+      
+    }))
+    
+    
+    this_df = this_chro%>%
+      dplyr::mutate(up_start, down_end)
+    
+    return(this_df)
+    
+    
+  }))
+  
+  ####
+  
+  #### need to fix another thing, for the genes with only one UTR it is very likely that it is only one of the 3' and 5' so need to gather more evidence . 
+  #### need to do this with another methods 
+  
+  
+  #### if there are more than 2 utrs, they should from different transcripts?
+  
+  #### get the names of genes 
+  
+  
+  write.table(get_unit, unitFile_name,
+              quote = F, row.names = F, sep = "\t")
+  
+  
+}
+
+
+#### this can be parallezed too 
+
+mapVCFtoReg = function(vcf_file, 
+                       reg_file,
+                       vcfMapped_reg_outputName,
+                       vcfMapped_regCount_outputName)
+  
+  
+{
+  # 
+  # vcf_file ="/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/vcf_folder_20210621/0a5aac29-c802-4d26-9924-025eda31f9d7.vcf"
+  # reg_file = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/gtf_border_region1000.tsv"
+  # # vcfMapped_reg_outputName = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/mappted_reg.tsv"
+  # vcfMapped_regCount_outputName = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/mappted_reg_counts.tsv"
+  # 
+  
+  vcf = fread(vcf_file, skip = "#CHROM",
+              stringsAsFactors = F, data.table = F)
+  colnames(vcf) = gsub("#","",colnames(vcf))
+  
+  reg =  fread(reg_file,
+               stringsAsFactors = F, data.table = F)
+  
+  
+  
+  match_reg = function(x,vcf,reg)
+  {
+    
+    this_chro = vcf$CHROM[x]
+    this_pos = vcf$POS[x]
+    
+    fil_reg_up =reg%>%
+      dplyr::filter(CHRO == this_chro & (up_start <= this_pos & TSS >= this_pos))%>%
+      dplyr::mutate(reg_spec = "upstreamTSS")%>%
+      dplyr::mutate(vcf_chro = this_chro, 
+                    vcf_pos = this_pos)
+    
+    fil_reg_down =reg%>%
+      dplyr::filter(CHRO == this_chro & (TES <= this_pos & down_end >= this_pos))%>%
+      dplyr::mutate(reg_spec = "downstreamTES")%>%
+      dplyr::mutate(vcf_chro = this_chro, 
+                    vcf_pos = this_pos)
+    
+    fil_reg = rbind(fil_reg_up, fil_reg_down)%>%
+      dplyr::select(vcf_chro, vcf_pos, everything())
+    
+    ##### parse this portion only
+    
+    if(nrow(fil_reg)>0)
+    {
+      fil_reg = fil_reg
+    }else{
+      
+      
+      fil_reg = data.frame(vcf_chro = this_chro,
+                           vcf_pos = this_pos,
+                           gene_name = "",
+                           gene_id = "",
+                           CHRO = "",
+                           STRAND = "",
+                           TSS = "",
+                           TES = "",
+                           up_start = "",
+                           down_end = "",
+                           reg_spec = "",
+                           stringsAsFactors = F)
+      
+      
+    }
+    
+    
+    
+    return(fil_reg)
+    
+  }
+  # 
+  # d_gtf = rbindlist(lapply(1:nrow(vcf), function(x) {
+  #   
+  #   this_chro = vcf$CHROM[x]
+  #   this_pos = vcf$POS[x]
+  #   
+  #   fil_reg_up =reg%>%
+  #     dplyr::filter(CHRO == this_chro & (up_start <= this_pos & TSS >= this_pos))%>%
+  #     dplyr::mutate(reg_spec = "upstreamTSS")%>%
+  #     dplyr::mutate(vcf_chro = this_chro, 
+  #                   vcf_pos = this_pos)
+  #   
+  #   fil_reg_down =reg%>%
+  #     dplyr::filter(CHRO == this_chro & (TES <= this_pos & down_end >= this_pos))%>%
+  #     dplyr::mutate(reg_spec = "downstreamTES")%>%
+  #     dplyr::mutate(vcf_chro = this_chro, 
+  #                   vcf_pos = this_pos)
+  #   
+  #   fil_reg = rbind(fil_reg_up, fil_reg_down)%>%
+  #     dplyr::select(vcf_chro, vcf_pos, everything())
+  #   
+  #   ##### parse this portion only 
+  #   if(nrow(fil_reg)>0)
+  #   {
+  #     
+  #     
+  #     return(fil_reg)
+  #     
+  #     
+  #   }
+  #   
+  #   
+  #   
+  # }))
+  # 
+  # 
+  # 
+  
+  ################################
+  
+  
+  
+  cl <- makeCluster(detectCores()-2)
+  registerDoParallel(cl)
+  
+  #vcf_test = vcf[1:10000,]
+  #tt = Sys.time()
+  
+  vcf_mapped_reg = rbindlist(foreach(x= 1:nrow(vcf), .packages = "dplyr")%dopar% match_reg(x,vcf,reg))
+  #et = Sys.time()
+  
+  #### here match_gtf is taken as an object rather than a function, so need to define within the environment 
+  
+  
+  stopCluster(cl) 
+  
+  
+  ###############################
+  
+    
+    vcf_mapped_reg = vcf_mapped_reg%>%
+      dplyr::mutate(reg_info = paste(CHRO, STRAND,gene_name, up_start, TSS, TES, down_end,reg_spec, sep = "_"))%>%
+      unique()%>%
+    dplyr::filter(nchar(reg_info)>7)
+    
+    write.table(vcf_mapped_reg, vcfMapped_reg_outputName,
+                quote = F, row.names = F, sep  = "\t")
+    
+    vcf_mapped_reg_counts = vcf_mapped_reg%>%
+      dplyr::select(reg_info,CHRO, STRAND, gene_name, gene_id, TSS, TES, up_start, down_end, reg_spec)%>%
+      dplyr::group_by(reg_info)%>%
+      dplyr::mutate(count = n())%>%
+      unique()
+    
+    write.table(vcf_mapped_reg_counts, vcfMapped_regCount_outputName,
+                quote = F, row.names = F, sep  = "\t")
+    
+    return(vcf_mapped_reg_counts)
+    
+
+  
+  
+}
+
+
+
+
+
+mapVCFtoUD = function(vcf_file, 
+                      ud_file,
+                      vcfMapped_ud_outputName,
+                      vcfMapped_udCount_outputName)
+  
+  
+{
+  # 
+  # vcf_file = "/Users/Ginny/Downloads/98112f79-4021-411e-b982-8a1b3ab9cff1/98112f79-4021-411e-b982-8a1b3ab9cff1.vcf"
+  # ud_file = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/user_define_regions.tsv"
+  # vcfMapped_ud_outputName = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/mappted_ud.tsv"
+  # vcfMapped_udCount_outputName = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/mappted_ud_counts.tsv"
+  # 
+  
+  vcf = fread(vcf_file, skip = "#CHROM",
+              stringsAsFactors = F, data.table = F)
+  colnames(vcf) = gsub("#","",colnames(vcf))
+  
+  ud =  fread(ud_file,
+              stringsAsFactors = F, data.table = F)
+  
+  d_ud = rbindlist(lapply(1:nrow(vcf), function(x) {
+    
+    this_chro = vcf$CHROM[x]
+    this_pos = vcf$POS[x]
+    
+    fil_ud =ud%>%
+      dplyr::filter(CHRO == this_chro & (start <= this_pos & end >= this_pos))%>%
+      dplyr::mutate(vcf_chro = this_chro, 
+                    vcf_pos = this_pos)
+    
+    ##### parse this portion only 
+    if(nrow(fil_ud)>0)
+    {
+      
+      
+      return(fil_ud)
+      
+      
+    }
+    
+    
+    
+  }))
+  
+  
+  if(nrow(d_ud)>0)
+  {
+    
+    vcf_mapped_ud = d_ud%>%
+      dplyr::mutate(ud_info = paste(CHRO, STRAND,gene_name,start, end, sep = "_"))%>%
+      unique()
+    
+    write.table(vcf_mapped_ud, vcfMapped_ud_outputName,
+                quote = F, row.names = F, sep  = "\t")
+    
+    
+    
+    vcf_mapped_ud_counts = vcf_mapped_ud%>%
+      dplyr::select(ud_info,CHRO, STRAND, gene_name, gene_id, start, end)%>%
+      dplyr::group_by(ud_info)%>%
+      dplyr::mutate(count = n())%>%
+      unique()
+    
+    
+    
+    write.table(vcf_mapped_ud_counts, vcfMapped_udCount_outputName,
+                quote = F, row.names = F, sep  = "\t")
+    
+  }
+  
+  return(vcf_mapped_ud_counts)
+}
+
+
+
+
+patientInfo_extract =function(vcf_file){
+  
+  #vcf_file = "/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/vcf_folder_20210621/0a5aac29-c802-4d26-9924-025eda31f9d7.vcf"
+  
+  f = readLines(vcf_file)
+  f_tf = grepl("##TUMOR", f)
+  if(sum(f_tf)==1)
+  {
+    f_t = grep("##TUMOR", f, value = T)
+    f_t_split = unlist(strsplit(f_t, split = ",")) 
+    b = unlist(strsplit(f_t_split[1],split = "Sample="))[2]
+  }else{
+    
+    sn = unlist(strsplit(vcf_file, split = "/"))
+    sl = length(sn)
+    tag = unlist(strsplit(sn[sl],split = "-"))[1]
+    
+    b = paste0("nonSample",tag)
+  }
+    
+
+  
+  return(b)
+}
+
+
+
