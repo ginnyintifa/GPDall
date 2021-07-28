@@ -14,7 +14,7 @@
 #' @param ud_fileName number of permutations
 #' @param output_folderPaht the directory output files will be deposited in
 #' @param output_tag a label for the anlaysis
-#' @import dplyr data.table magrittr doParellel foreach
+#' @import dplyr data.table magrittr doParallel foreach
 #' @keywords mapping
 #' @export
 #' @examples

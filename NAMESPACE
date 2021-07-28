@@ -2,7 +2,7 @@
 
 export(gpd_workflow)
 import(data.table)
-import(doParellel)
+import(doParallel)
 import(dplyr)
 import(foreach)
 import(magrittr)
