@@ -1,12 +1,13 @@
 # GPDall
 
-'gpd_workflow' is the main function in mapping variants from vcf file to various kinds of units. It will generate a output file with the detials of mapping in the 'output_folderPath',
-and its return value is a matrix where each row is a unit and the number of mappable variants.
+'gpd_workflow' is the main function in mapping variants from vcf file to various kinds of units. It will generate a output file with the detials of mapping in the 'output_folderPath', and its return value is a matrix where each row is a unit and the number of mappable variants.
+
+'vcf_folderPath' is the path to the folder that holds the vcf files, each file is for an individual. 
 
 Please specify the type of units by the parameter 'mapping_vcf_to'. The following unit types are acceptable, "GTF", "regulatory", "protUnits" and "userDefine". With each type of unit specified, users are expected to specifiy the corresponding unit file in one of the following parameters, "mapTo_fileName" for "protUnits", "gtf_fileName" for "GTF", "reg_fileName" for "regulatory", and "ud_fileName" for "userDefine". 
 
 
-For example, the following function maps vcf files in a fold to units seen in the parsed GTF file. 
+For example, the following function maps vcf files in a folder to units seen in the parsed GTF file. 
 
 
 ```{r}
