@@ -1,9 +1,5 @@
 
 
-
-
-
-
 #' Compare between 2 conditions (paired) in 1D
 #'
 #' @param vcf_folderPath names of the columns in the first condition
@@ -30,17 +26,6 @@ gpd_workflow = function(vcf_folderPath,
 )
 
 {
-  #
-
-  #vcf_folderPath = "/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/vcf_folder_20210621/"
-  # mapping_vcf_to = "protUnits"
-  # mapTo_fileName = "/Users/Ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/protGenoMapped.tsv"
-  # gtf_fileName = NULL
-  # reg_fileName = NULL
-  # ud_fileName = NULL
-  # output_folderPath = "/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/test_vcf_20210724/"
-  # output_tag = "test0728_protUnits"
-  #
 
 
   files = list.files(vcf_folderPath)
