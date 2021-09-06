@@ -262,16 +262,19 @@ mapVCFtoGTF= function(vcf_file,
 
 }
 
-
-
-
-
+#' Generate units based on UTR regions according to given downstream and upstream base pair numbers
+#' @param up5TUR_bp number of base pairs upstream of 5' UTR, default to 1000
+#' @param down3UTR_bp number of base pairs downstream of 3' UTR, default to 1000
+#' @param gtf_border dataframe of genes' border info
+#' @param regUnit_filename output filename of userdefined regions
+#' @import dplyr data.table magrittr
+#' @keywords get user defined regulatory regions from GTF file
+#' @export
 
 defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of 5' UTR, default to 1000
                             down3UTR_bp = 1000, #### how many base pair downstream of 3' UTR, default to 1000
                             gtf_border,# = gene_boarder,
-                            geneList, ### a list of genes of interst, default to all genes in the current gtf file
-                            unitFile_name)
+                            regUnit_filename)
 
 {
 
@@ -279,13 +282,12 @@ defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of
 
   get_unit = rbindlist(lapply(1:length(all_chros), function(x) {
 
-    #### need to fix a bug of overlapping genes
     this_chro = gtf_border%>%
       dplyr::filter(CHRO == all_chros[x])
 
 
     up_start = unlist(lapply(1:nrow(this_chro), function(k) {
-      it = max(1, this_chro$TSS[k]-1000)
+      it = max(1, this_chro$TSS[k]-up5UTR_bp)
       if(k>1)
       {
         itt = max(it, (this_chro$TES[k-1]+1))
@@ -298,7 +300,7 @@ defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of
 
     down_end = unlist(lapply(1:nrow(this_chro), function(k) {
 
-      it =  this_chro$TES[k] +1000
+      it =  this_chro$TES[k] + down3UTR_bp
 
       if(k<nrow(this_chro))
       {
@@ -328,6 +330,56 @@ defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of
 
 
 }
+
+#' Generate gene borders according to the gtf file given a list of genes of interest
+#' @param gtf_df parsed gtf datafrome, can be loaded from the package
+#' @param geneList a list of gene symbols of interest
+#' @param geneBorder_filename output filename of borders of genes of interest
+#' @import dplyr data.table magrittr
+#' @keywords get ghe border coordinates of a list of genes
+#' @export
+
+get_geneborder = function(gtf_df,
+                          geneList,
+                          geneBorder_filename)
+{
+
+
+  real_genes = gtf_df%>%
+    dplyr::filter(transcript_type == "protein_coding", gene_name %in% geneList)
+
+  gene_sets = unique(real_genes$gene_name)
+  gene_border = rbindlist(lapply(1:length(gene_sets), function(x) {
+    get_gene = gtf_df%>%
+      dplyr::filter(gene_name == gene_sets[x])
+
+    tss = min(get_gene$START)
+    tes = max(get_gene$END)
+
+    df = data.frame(gene_name = gene_sets[x],gene_id = get_gene$gene_id[1],
+                    CHRO = get_gene$CHRO[1], STRAND = get_gene$STRAND[1],
+                    TSS = tss, TES = tes, stringsAsFactors = F)
+
+
+    return(df)
+
+
+  }))
+
+
+  gene_border = gene_border%>%
+    dplyr::arrange(CHRO, TSS)
+
+  write.table(gene_border, geneBorder_filename,
+              quote = F, row.names = F, sep = "\t")
+
+
+
+}
+
+
+
+
 
 
 #### this can be parallezed too
