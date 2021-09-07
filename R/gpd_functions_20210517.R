@@ -333,7 +333,7 @@ defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of
 #' Generate prot units with genome coordinates
 #' @param protUnit_filename file of protein units of interest
 #' @param mappedProtUnit_filename output filename of protein units with genome coordinates added
-#' @import dplyr data.table magrittr ensembldb EnsDb.Hsapiens.v86
+#' @import dplyr data.table magrittr
 #' @keywords get the border coordinates of a list of genes
 #' @export
 get_protGeno = function(protUnit_filename,
