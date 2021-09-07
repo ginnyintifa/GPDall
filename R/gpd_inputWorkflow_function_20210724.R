@@ -26,6 +26,16 @@ gpd_workflow = function(vcf_folderPath,
 )
 
 {
+  # vcf_folderPath = "/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/vcf_folder_20210621/"
+  # mapping_vcf_to = "protUnits"
+  # mapTo_fileName = "/Users/ginny/Desktop/mapped_protUnits.tsv"
+  # gtf_df = parse_gtf
+  # reg_fileName = NULL
+  # ud_fileName = NULL
+  # output_folderPath = "/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/test_vcf_20210906/"
+  # output_tag = "test_protUnits_sampleMapped"
+
+
 
 
   files = list.files(vcf_folderPath)
@@ -167,6 +177,10 @@ gpd_workflow = function(vcf_folderPath,
   write.table(map_result, paste0(output_folderPath, output_tag,"_", "allMappedCount.tsv"),
               quote = F, row.names = F, sep = "\t")
 
+if(nrow(map_result)>0)
+{
+
+
 
   #### I require what ever the type is the first column contains the unit info
   colnames(map_result)[1] = "unit_info"
@@ -206,5 +220,8 @@ gpd_workflow = function(vcf_folderPath,
 
 
   return(mat_df)
+}else{
+  cat("No variants mapped.","\n")
+}
 
 }
