@@ -1,24 +1,24 @@
 
 
-#' Compare between 2 conditions (paired) in 1D
+#' mapping vcf to various units
 #'
-#' @param vcf_folderPath names of the columns in the first condition
-#' @param mapping_vcf_to names of the columns in the second condition
-#' @param mapTo_fileName dataframe for the data, rows are genes, columns are patients in 2 conditions
-#' @param gtf_fileName genes with values in at least the number of samples are included in comparison
-#' @param reg_fileName seeds for the permutation
-#' @param ud_fileName number of permutations
-#' @param output_folderPaht the directory output files will be deposited in
-#' @param output_tag a label for the anlaysis
+#' @param vcf_folderPath the path to the folder of vcf files
+#' @param mapping_vcf_to mapping mode, one of "GTF","regulatory","protUnits","userDefine"
+#' @param mapTo_fileName file of protein units to be mapped with genome coordinates
+#' @param gtf_df gtf dataframe to be mapped, can be loaded with the package
+#' @param reg_fileName file of regulatory units to be mapped
+#' @param ud_fileName file of user-defined regions
+#' @param output_folderPaht the directory holding output files
+#' @param output_tag a tag for output files
 #' @import dplyr data.table magrittr doParallel foreach
-#' @keywords mapping
+#' @keywords mapping vcf to various units
 #' @export
 #' @examples
 
 gpd_workflow = function(vcf_folderPath,
                         mapping_vcf_to,
                         mapTo_fileName,
-                        gtf_fileName,
+                        gtf_df,
                         reg_fileName,
                         ud_fileName,
                         output_folderPath,
@@ -46,10 +46,10 @@ gpd_workflow = function(vcf_folderPath,
       pb = patientInfo_extract(filenames[x])
 
       matched = mapVCFtoProtUnits (vcf_file = filenames[x],
-                                   genoMapped = T,
+                                  # genoMapped = T,  ### new version change it into two steps
                                    protMappedGeno_file = mapTo_fileName,
-                                   protUnit_file= NULL,
-                                   protMappedGeno_outputName = NULL,
+                                  # protUnit_file= NULL,
+                                   #protMappedGeno_outputName = NULL,
                                    vcfMapped_prot_outputName = paste0(output_folderPath, output_tag,"_",
                                                                       pb,"_", "mapToProt.tsv"),
                                    vcfMapped_protUnitCount_outputName = paste0(output_folderPath, output_tag,"_",
@@ -72,7 +72,7 @@ gpd_workflow = function(vcf_folderPath,
     ##################################################################
     if(mapping_vcf_to == "GTF")
     {
-      gtf_df = fread(gtf_fileName, stringsAsFactors = F, data.table = F)
+      gtf_df = gtf_df
 
       #### a series of operations
       map_result = rbindlist(lapply(1:length(filenames), function(x) {

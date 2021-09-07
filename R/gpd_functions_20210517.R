@@ -16,75 +16,73 @@ mapVCFtoProtUnits = function(vcf_file,
   colnames(vcf) = gsub("#","",colnames(vcf))
 
 
-  if(genoMapped == T)
-  {
+ # if(genoMapped == T)
+  #{
     p_g = fread(protMappedGeno_file, stringsAsFactors = F, data.table = F)
 
-  }else{
+  #}else{
 
-    pe = fread(protUnit_file,
-               stringsAsFactors = F, data.table = F)
-
-    p_g = rbindlist(lapply(1:nrow(pe), function(x) {
-
-      if(x%%100 ==0)
-        cat(x,"\n")
-      po = IRanges(start = pe$start_position[x], end = pe$end_position[x], names = pe$uniprot_accession[x])
-
-      r = proteinToGenome(po, EnsDb.Hsapiens.v86, idType = "uniprot_id")
-
-      ##### gather all of them and take the union of chromosome and position
-
-      if(length(r[[1]])>0)
-      {
-        if("unlistData" %in% slotNames(r[[1]]))
-        {
-          df = r[[1]]@unlistData
-
-          CHROM = rep(as.character(df@seqnames@values[1]), length(df))
-          gstart = df@ranges@start
-          strand = as.character(df@strand@values[1])
-
-          gend = df@ranges@width + df@ranges@start -1
-
-
-          this_df = data.frame(CHROM, gstart, gend,strand,stringsAsFactors = F)%>%
-            unique()
-
-
-        }else{
-          df = r[[1]]
-
-          CHROM = rep(as.character(df@seqnames@values[1]), length(df))
-          gstart = df@ranges@start
-          strand = as.character(df@strand@values[1])
-          gend = df@ranges@width + df@ranges@start -1
-
-
-          this_df = data.frame(CHROM, gstart, gend, strand, stringsAsFactors = F)%>%
-            unique()
-
-        }
-
-        lb = unique(this_df)
-
-
-        final_df = cbind(pe[rep(x,nrow(lb)),], lb)
-
-        return(final_df)
-
-      }
-
-
-    }))
-
-
-    write.table(p_g, protMappedGeno_outputName,
-                quote = F, row.names = F, sep = "\t")
-
-  }
-
-
+  #   pe = fread(protUnit_file,
+  #              stringsAsFactors = F, data.table = F)
+  #
+  #   p_g = rbindlist(lapply(1:nrow(pe), function(x) {
+  #
+  #     if(x%%100 ==0)
+  #       cat(x,"\n")
+  #     po = IRanges(start = pe$start_position[x], end = pe$end_position[x], names = pe$uniprot_accession[x])
+  #
+  #     r = proteinToGenome(po, EnsDb.Hsapiens.v86, idType = "uniprot_id")
+  #
+  #     ##### gather all of them and take the union of chromosome and position
+  #
+  #     if(length(r[[1]])>0)
+  #     {
+  #       if("unlistData" %in% slotNames(r[[1]]))
+  #       {
+  #         df = r[[1]]@unlistData
+  #
+  #         CHROM = rep(as.character(df@seqnames@values[1]), length(df))
+  #         gstart = df@ranges@start
+  #         strand = as.character(df@strand@values[1])
+  #
+  #         gend = df@ranges@width + df@ranges@start -1
+  #
+  #
+  #         this_df = data.frame(CHROM, gstart, gend,strand,stringsAsFactors = F)%>%
+  #           unique()
+  #
+  #
+  #       }else{
+  #         df = r[[1]]
+  #
+  #         CHROM = rep(as.character(df@seqnames@values[1]), length(df))
+  #         gstart = df@ranges@start
+  #         strand = as.character(df@strand@values[1])
+  #         gend = df@ranges@width + df@ranges@start -1
+  #
+  #
+  #         this_df = data.frame(CHROM, gstart, gend, strand, stringsAsFactors = F)%>%
+  #           unique()
+  #
+  #       }
+  #
+  #       lb = unique(this_df)
+  #
+  #
+  #       final_df = cbind(pe[rep(x,nrow(lb)),], lb)
+  #
+  #       return(final_df)
+  #
+  #     }
+  #
+  #
+  #   }))
+  #
+  #
+  #   write.table(p_g, protMappedGeno_outputName,
+  #               quote = F, row.names = F, sep = "\t")
+  #
+  # }
 
   matched = rbindlist(lapply(1:nrow(vcf), function(x) {
 
@@ -325,11 +323,90 @@ defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of
   }))
 
 
-  write.table(get_unit, unitFile_name,
+  write.table(get_unit, regUnit_filename,
               quote = F, row.names = F, sep = "\t")
 
 
 }
+
+
+#' Generate prot units with genome coordinates
+#' @param protUnit_filename file of protein units of interest
+#' @param mappedProtUnit_filename output filename of protein units with genome coordinates added
+#' @import dplyr data.table magrittr ensembldb EnsDb.Hsapiens.v86
+#' @keywords get the border coordinates of a list of genes
+#' @export
+get_protGeno = function(protUnit_filename,
+                        mappedProtUnit_filename)
+{
+
+
+  pe = fread(protUnit_filename,
+             stringsAsFactors = F, data.table = F)
+
+  p_g = rbindlist(lapply(1:nrow(pe), function(x) {
+
+    #  if(x%%100 ==0)
+
+    #  cat(x,"\n")
+    po = IRanges(start = pe$start_position[x], end = pe$end_position[x], names = pe$uniprot_accession[x])
+
+    r = proteinToGenome(po, EnsDb.Hsapiens.v86, idType = "uniprot_id")
+
+    ##### gather all of them and take the union of chromosome and position
+
+    if(length(r[[1]])>0)
+    {
+      if("unlistData" %in% slotNames(r[[1]]))
+      {
+        df = r[[1]]@unlistData
+
+        CHROM = rep(as.character(df@seqnames@values[1]), length(df))
+        gstart = df@ranges@start
+        strand = as.character(df@strand@values[1])
+
+        gend = df@ranges@width + df@ranges@start -1
+
+
+        this_df = data.frame(CHROM, gstart, gend,strand,stringsAsFactors = F)%>%
+          unique()
+
+
+      }else{
+        df = r[[1]]
+
+        CHROM = rep(as.character(df@seqnames@values[1]), length(df))
+        gstart = df@ranges@start
+        strand = as.character(df@strand@values[1])
+        gend = df@ranges@width + df@ranges@start -1
+
+
+        this_df = data.frame(CHROM, gstart, gend, strand, stringsAsFactors = F)%>%
+          unique()
+
+      }
+
+      lb = unique(this_df)
+
+
+      final_df = cbind(pe[rep(x,nrow(lb)),], lb)
+
+      return(final_df)
+
+    }
+
+
+  }))
+
+
+  write.table(p_g, mappedProteUnit_filename,
+              quote = F, row.names = F, sep = "\t")
+
+}
+
+
+
+
 
 #' Generate gene borders according to the gtf file given a list of genes of interest
 #' @param gtf_df parsed gtf datafrome, can be loaded from the package
