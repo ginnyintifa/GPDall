@@ -1,11 +1,7 @@
 
 
-
 mapVCFtoProtUnits = function(vcf_file,
-                             genoMapped = F,
-                             protMappedGeno_file = NULL,
-                             protUnit_file,
-                             protMappedGeno_outputName = NULL,
+                             protMappedGeno_file,
                              vcfMapped_prot_outputName,
                              vcfMapped_protUnitCount_outputName)
 {

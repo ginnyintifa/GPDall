@@ -46,10 +46,7 @@ gpd_workflow = function(vcf_folderPath,
       pb = patientInfo_extract(filenames[x])
 
       matched = mapVCFtoProtUnits (vcf_file = filenames[x],
-                                  # genoMapped = T,  ### new version change it into two steps
                                    protMappedGeno_file = mapTo_fileName,
-                                  # protUnit_file= NULL,
-                                   #protMappedGeno_outputName = NULL,
                                    vcfMapped_prot_outputName = paste0(output_folderPath, output_tag,"_",
                                                                       pb,"_", "mapToProt.tsv"),
                                    vcfMapped_protUnitCount_outputName = paste0(output_folderPath, output_tag,"_",
