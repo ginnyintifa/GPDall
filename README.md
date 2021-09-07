@@ -55,7 +55,7 @@ BiocManager::install("ensembldb")
 
 ```
 
-And add genome coordinates to the protein unis in the following way:
+And add genome coordinates to the protein units in the following way:
 
 ```{r}
 

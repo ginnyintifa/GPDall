@@ -2,13 +2,13 @@
 % Please edit documentation in R/gpd_inputWorkflow_function_20210724.R
 \name{gpd_workflow}
 \alias{gpd_workflow}
-\title{Compare between 2 conditions (paired) in 1D}
+\title{mapping vcf to various units}
 \usage{
 gpd_workflow(
   vcf_folderPath,
   mapping_vcf_to,
   mapTo_fileName,
-  gtf_fileName,
+  gtf_df,
   reg_fileName,
   ud_fileName,
   output_folderPath,
@@ -16,23 +16,27 @@ gpd_workflow(
 )
 }
 \arguments{
-\item{vcf_folderPath}{names of the columns in the first condition}
+\item{vcf_folderPath}{the path to the folder of vcf files}
 
-\item{mapping_vcf_to}{names of the columns in the second condition}
+\item{mapping_vcf_to}{mapping mode, one of "GTF","regulatory","protUnits","userDefine"}
 
-\item{mapTo_fileName}{dataframe for the data, rows are genes, columns are patients in 2 conditions}
+\item{mapTo_fileName}{file of protein units to be mapped with genome coordinates}
 
-\item{gtf_fileName}{genes with values in at least the number of samples are included in comparison}
+\item{gtf_df}{gtf dataframe to be mapped, can be loaded with the package}
 
-\item{reg_fileName}{seeds for the permutation}
+\item{reg_fileName}{file of regulatory units to be mapped}
 
-\item{ud_fileName}{number of permutations}
+\item{ud_fileName}{file of user-defined regions}
 
-\item{output_tag}{a label for the anlaysis}
+\item{output_tag}{a tag for output files}
 
-\item{output_folderPaht}{the directory output files will be deposited in}
+\item{output_folderPaht}{the directory holding output files}
 }
 \description{
-Compare between 2 conditions (paired) in 1D
+mapping vcf to various units
 }
 \keyword{mapping}
+\keyword{to}
+\keyword{units}
+\keyword{various}
+\keyword{vcf}

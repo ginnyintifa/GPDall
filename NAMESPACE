@@ -2,9 +2,12 @@
 
 export(defineRegion_UTR)
 export(get_geneborder)
+export(get_protGeno)
 export(gpd_workflow)
+import(EnsDb.Hsapiens.v86)
 import(data.table)
 import(doParallel)
 import(dplyr)
+import(ensembldb)
 import(foreach)
 import(magrittr)
