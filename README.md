@@ -28,7 +28,7 @@ mat = gpd_workflow(vcf_folderPath = "/Path/to/vcf/file/folder/",
 
 ## Map variants to protein units 
 
-User can view a sample of the input protUnit_file by calling "protUnit_example"
+User can view a sample of the input protUnit_file by calling `protUnit_example`
 
 
 ```{r}
@@ -67,7 +67,7 @@ get_protGeno(protUnit_filename = unMapped_protUnit_example,
 
 ## Map variants to user-defined genome regions 
 
-User can view a sample of the input userDefine_file by calling "userDefine_example"
+User can view a sample of the input userDefine_file by calling `userDefine_example`
 
 ```{r}
 mat = gpd_workflow(vcf_folderPath = "/Path/to/vcf/file/folder/",
@@ -83,7 +83,7 @@ mat = gpd_workflow(vcf_folderPath = "/Path/to/vcf/file/folder/",
 
 ## Map variants to UTR based regulatory regions with user-defined downstream and upstream length 
 
-User can view a sample of the input regulatory_file by calling "regulatoryRegion_example"
+User can view a sample of the input regulatory_file by calling `regulatoryRegion_example`
 
 ```{r}
 mat = gpd_workflow(vcf_folderPath = "/Path/to/vcf/file/folder/",
