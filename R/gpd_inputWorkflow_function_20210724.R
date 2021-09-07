@@ -164,7 +164,8 @@ gpd_workflow = function(vcf_folderPath,
 
   ######### before the final return need to make it a matrix
 
-  write.table(map_result, paste0(output_folderPath, output_tag,"_", "allMappedCount.tsv"))
+  write.table(map_result, paste0(output_folderPath, output_tag,"_", "allMappedCount.tsv"),
+              quote = F, row.names = F, sep = "\t")
 
 
   #### I require what ever the type is the first column contains the unit info
@@ -199,7 +200,8 @@ gpd_workflow = function(vcf_folderPath,
     dplyr::arrange(desc(sum))
 
 
-  write.table(mat_df, paste0(output_folderPath, output_tag,"_", "countMatrix.tsv"))
+  write.table(mat_df, paste0(output_folderPath, output_tag,"_", "countMatrix.tsv"),
+              quote = F, row.names = F, sep = "\t")
 
 
 
