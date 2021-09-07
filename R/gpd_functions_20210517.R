@@ -395,7 +395,7 @@ get_protGeno = function(protUnit_filename,
   }))
 
 
-  write.table(p_g, mappedProteUnit_filename,
+  write.table(p_g, mappedProtUnit_filename,
               quote = F, row.names = F, sep = "\t")
 
 }

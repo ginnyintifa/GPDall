@@ -1,5 +1,22 @@
 # GPDall
 
+Installation 
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+install_github("ginnyintifa/GPDall")
+
+library(GPDall)
+```
+Please install the following two packages to enable parallel computing 
+
+```{r}
+require(doParallel)
+require(foreach)
+
+```
+
+
 'gpd_workflow' is the main function in mapping variants from vcf file to various kinds of units. It will generate a output file with the detials of mapping in the 'output_folderPath', and its return value is a matrix where each row is a unit and the number of mappable variants.
 
 'vcf_folderPath' is the path to the folder that holds the vcf files, each file is for an individual. 
@@ -13,7 +30,7 @@ An annotated version of gtf file is included in the package, users can call it w
 ## Map variants to GTF file 
 
 
-For example, the following function maps vcf files in a folder to units seen in the parsed GTF file. 
+ The following function maps vcf files in a folder to units seen in the parsed GTF file. 
 
 ```{r}
 mat = gpd_workflow(vcf_folderPath = "/Path/to/vcf/file/folder/",
@@ -59,7 +76,7 @@ And add genome coordinates to the protein units in the following way:
 
 ```{r}
 
-get_protGeno(protUnit_filename = unMapped_protUnit_example,
+get_protGeno(protUnit_filename = unMapped_protUnit_filename,
              mappedProtUnit_filename = "mapped_filename")
 
 ```
@@ -71,7 +88,7 @@ User can view a sample of the input userDefine_file by calling `userDefine_examp
 
 ```{r}
 mat = gpd_workflow(vcf_folderPath = "/Path/to/vcf/file/folder/",
-              mapping_vcf_to = "userDefine"
+              mapping_vcf_to = "userDefine",
               mapTo_fileName = NULL,
               gtf_df = parse_gtf,
               reg_fileName = NULL, 
@@ -87,7 +104,7 @@ User can view a sample of the input regulatory_file by calling `regulatoryRegion
 
 ```{r}
 mat = gpd_workflow(vcf_folderPath = "/Path/to/vcf/file/folder/",
-              mapping_vcf_to = "regulatory"
+              mapping_vcf_to = "regulatory",
               mapTo_fileName = NULL,
               gtf_df = parse_gtf,
               reg_fileName = NULL, 
