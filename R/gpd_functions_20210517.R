@@ -272,6 +272,11 @@ defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of
 
 {
 
+#
+#   up5UTR_bp = 1000
+#   down3UTR_bp = 1000
+#   gtf_border = gb
+
   all_chros = unique(gtf_border$CHRO)
 
   get_unit = rbindlist(lapply(1:length(all_chros), function(x) {
@@ -446,7 +451,7 @@ get_geneborder = function(gtf_df,
   write.table(gene_border, geneBorder_filename,
               quote = F, row.names = F, sep = "\t")
 
-
+return(gene_border)
 
 }
 

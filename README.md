@@ -118,15 +118,15 @@ Under "regulatory" mode, user may obtain the desired regulatory unit file by fir
 ```{r}
 
 
-gtf_border = function(gtf_df,
+           gb = gtf_border(gtf_df,
 	                  geneList, # a list of gene symbols of interest
                       geneBorder_filename)
 
 
 
-defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of 5' UTR, default to 1000
+           defineRegion_UTR(up5UTR_bp = 1000, ### how many base pair upstream of 5' UTR, default to 1000
                             down3UTR_bp = 1000, #### how many base pair downstream of 3' UTR, default to 1000
-                            gtf_border,
+                            gtf_border = gb,
                             regUnit_filename)
 
 ```
