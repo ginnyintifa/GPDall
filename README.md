@@ -6,6 +6,8 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 install_github("ginnyintifa/GPDall")
 
+require(devtool)
+
 library(GPDall)
 ```
 Please install the following two packages to enable parallel computing 
@@ -118,7 +120,7 @@ Under "regulatory" mode, user may obtain the desired regulatory unit file by fir
 ```{r}
 
 
-           gb = gtf_border(gtf_df,
+           gb = get_geneborder(gtf_df,
 	                  geneList, # a list of gene symbols of interest
                       geneBorder_filename)
 
