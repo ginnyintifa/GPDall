@@ -1,5 +1,297 @@
 
 
+
+#' Generate units based on UTR regions according to given downstream and upstream base pair numbers
+#' @param up5TUR_bp number of base pairs upstream of 5' UTR, default to 1000
+#' @param down3UTR_bp number of base pairs downstream of 3' UTR, default to 1000
+#' @param gtf_border dataframe of genes' border info
+#' @param regUnit_filename output filename of userdefined regions
+#' @import dplyr data.table magrittr
+#' @keywords get user defined regulatory regions from GTF file
+#' @export
+
+defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of 5' UTR, default to 1000
+                            down3UTR_bp = 1000, #### how many base pair downstream of 3' UTR, default to 1000
+                            gtf_border,# = gene_boarder,
+                            regUnit_filename)
+
+{
+
+  # #
+  #   up5UTR_bp = 1000
+  #    down3UTR_bp = 1000
+  #     gtf_border = gb
+
+  all_chros = unique(gtf_border$CHRO)
+
+  get_unit = rbindlist(lapply(1:length(all_chros), function(x) {
+
+
+   all_df = gtf_border[1,]%>%
+     dplyr::mutate(up_start = NA, down_end = NA)
+
+    this_chro = gtf_border%>%
+      dplyr::filter(CHRO == all_chros[x], STRAND == "+")%>%
+      dplyr::arrange(TSS)
+
+
+    if(nrow(this_chro)>0)
+    {
+      up_start = unlist(lapply(1:nrow(this_chro), function(k) {
+
+        it = max(1, this_chro$TSS[k]-up5UTR_bp)
+        if(k>1)
+        {
+          itt = max(it, (this_chro$TES[k-1]+1))
+        }else{
+          itt = it
+        }
+
+        return(itt)
+      }
+      ))
+
+
+      ####the downstream utr border of a gene should be smaller than the tss of the gene after it
+
+      down_end = unlist(lapply(1:nrow(this_chro), function(k) {
+
+        it =  this_chro$TES[k] + down3UTR_bp
+
+        if(k<nrow(this_chro))
+        {
+
+          itt = min(it, (this_chro$TSS[k+1]-1))
+
+        }else{
+          itt = it
+        }
+
+        return(itt)
+
+      }))
+
+
+      this_df = this_chro%>%
+        dplyr::mutate(up_start, down_end)
+
+
+      all_df = this_df%>%
+        na.omit()
+    }
+
+
+
+####the upper utr border of a gene should be biger than the tes of the gene in front of it
+
+
+    #######  add another arm of the reverse strand thing
+    ######  need to modify
+
+    that_chro = gtf_border%>%
+      dplyr::filter(CHRO == all_chros[x], STRAND == "-")%>%
+      dplyr::arrange(desc(TSS))
+
+ if(nrow(that_chro)>0)
+ {
+   rup_start = unlist(lapply(1:nrow(that_chro), function(k) {
+
+     it =  that_chro$TSS[k] + up5UTR_bp
+     if(k>1)
+     {
+       itt = min(it, (that_chro$TES[k-1]-1))
+     }else{
+       itt = it
+     }
+
+     return(itt)
+   }
+   ))
+
+
+
+   rdown_end = unlist(lapply(1:nrow(that_chro), function(k) {
+
+     it =  max(1,that_chro$TES[k] - down3UTR_bp)
+
+     if(k<nrow(that_chro))
+     {
+
+       itt = max(it, (that_chro$TSS[k+1]+1))
+
+     }else{
+       itt = it
+     }
+
+     return(itt)
+
+   }))
+
+
+   that_df = that_chro%>%
+     dplyr::mutate(up_start = rup_start,
+                   down_end = rdown_end)
+
+   all_df = rbind(all_df, that_df)%>%
+     na.omit()
+
+
+ }
+
+
+    return(all_df)
+
+
+  }))
+
+
+  write.table(get_unit, regUnit_filename,
+              quote = F, row.names = F, sep = "\t")
+
+
+}
+
+
+#' Generate prot units with genome coordinates
+#' @param protUnit_filename file of protein units of interest
+#' @param mappedProtUnit_filename output filename of protein units with genome coordinates added
+#' @import dplyr data.table magrittr
+#' @keywords get the border coordinates of a list of genes
+#' @export
+get_protGeno = function(protUnit_filename,
+                        mappedProtUnit_filename)
+{
+
+
+  pe = fread(protUnit_filename,
+             stringsAsFactors = F, data.table = F)
+
+  p_g = rbindlist(lapply(1:nrow(pe), function(x) {
+
+    #  if(x%%100 ==0)
+
+    #  cat(x,"\n")
+    po = IRanges(start = pe$start_position[x], end = pe$end_position[x], names = pe$uniprot_accession[x])
+
+    r = proteinToGenome(po, EnsDb.Hsapiens.v86, idType = "uniprot_id")
+
+    ##### gather all of them and take the union of chromosome and position
+
+    if(length(r[[1]])>0)
+    {
+      if("unlistData" %in% slotNames(r[[1]]))
+      {
+        df = r[[1]]@unlistData
+
+        CHROM = rep(as.character(df@seqnames@values[1]), length(df))
+        gstart = df@ranges@start
+        strand = as.character(df@strand@values[1])
+
+        gend = df@ranges@width + df@ranges@start -1
+
+
+        this_df = data.frame(CHROM, gstart, gend,strand,stringsAsFactors = F)%>%
+          unique()
+
+
+      }else{
+        df = r[[1]]
+
+        CHROM = rep(as.character(df@seqnames@values[1]), length(df))
+        gstart = df@ranges@start
+        strand = as.character(df@strand@values[1])
+        gend = df@ranges@width + df@ranges@start -1
+
+
+        this_df = data.frame(CHROM, gstart, gend, strand, stringsAsFactors = F)%>%
+          unique()
+
+      }
+
+      lb = unique(this_df)
+
+
+      final_df = cbind(pe[rep(x,nrow(lb)),], lb)
+
+      return(final_df)
+
+    }
+
+
+  }))
+
+
+  write.table(p_g, mappedProtUnit_filename,
+              quote = F, row.names = F, sep = "\t")
+
+}
+
+
+
+
+
+#' Generate gene borders according to the gtf file given a list of genes of interest
+#' @param gtf_df parsed gtf datafrome, can be loaded from the package
+#' @param geneList a list of gene symbols of interest
+#' @param geneBorder_filename output filename of borders of genes of interest
+#' @import dplyr data.table magrittr
+#' @keywords get ghe border coordinates of a list of genes
+#' @export
+
+get_geneborder = function(gtf_df,
+                          geneList,
+                          geneBorder_filename)
+{
+
+  # gtf_df = parse_gtf
+  # geneList = gl
+  # geneBorder_filename = "/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/test_vcf_20210906/geneBorders.tsv"
+
+
+  real_genes = gtf_df%>%
+    dplyr::filter(transcript_type == "protein_coding", gene_name %in% geneList)
+
+  gene_sets = unique(real_genes$gene_name)
+  gene_border = rbindlist(lapply(1:length(gene_sets), function(x) {
+    get_gene = gtf_df%>%
+      dplyr::filter(gene_name == gene_sets[x])
+
+    tss = min(get_gene$START)
+    tes = max(get_gene$END)
+
+    if(get_gene$STRAND[1] == "-"){
+      tss = max(get_gene$END)
+      tes = min(get_gene$START)
+
+    }
+
+
+    df = data.frame(gene_name = gene_sets[x],gene_id = get_gene$gene_id[1],
+                    CHRO = get_gene$CHRO[1], STRAND = get_gene$STRAND[1],
+                    TSS = tss, TES = tes, stringsAsFactors = F)
+
+
+    return(df)
+
+
+  }))
+
+
+  gene_border = gene_border%>%
+    dplyr::arrange(CHRO, TSS)
+
+  write.table(gene_border, geneBorder_filename,
+              quote = F, row.names = F, sep = "\t")
+
+  return(gene_border)
+
+}
+
+
+
+
+
+
 mapVCFtoProtUnits = function(vcf_file,
                              protMappedGeno_file,
                              vcfMapped_prot_outputName,
@@ -255,207 +547,6 @@ mapVCFtoGTF= function(vcf_file,
   return(vcf_mapped_gtf_counts)
 
 }
-
-#' Generate units based on UTR regions according to given downstream and upstream base pair numbers
-#' @param up5TUR_bp number of base pairs upstream of 5' UTR, default to 1000
-#' @param down3UTR_bp number of base pairs downstream of 3' UTR, default to 1000
-#' @param gtf_border dataframe of genes' border info
-#' @param regUnit_filename output filename of userdefined regions
-#' @import dplyr data.table magrittr
-#' @keywords get user defined regulatory regions from GTF file
-#' @export
-
-defineRegion_UTR = function(up5UTR_bp = 1000, ### how many base pair upstream of 5' UTR, default to 1000
-                            down3UTR_bp = 1000, #### how many base pair downstream of 3' UTR, default to 1000
-                            gtf_border,# = gene_boarder,
-                            regUnit_filename)
-
-{
-
-#
-#   up5UTR_bp = 1000
-#   down3UTR_bp = 1000
-#   gtf_border = gb
-
-  all_chros = unique(gtf_border$CHRO)
-
-  get_unit = rbindlist(lapply(1:length(all_chros), function(x) {
-
-    this_chro = gtf_border%>%
-      dplyr::filter(CHRO == all_chros[x])
-
-
-    up_start = unlist(lapply(1:nrow(this_chro), function(k) {
-      it = max(1, this_chro$TSS[k]-up5UTR_bp)
-      if(k>1)
-      {
-        itt = max(it, (this_chro$TES[k-1]+1))
-      }else{
-        itt = it
-      }
-      return(itt)
-    }
-    ))
-
-    down_end = unlist(lapply(1:nrow(this_chro), function(k) {
-
-      it =  this_chro$TES[k] + down3UTR_bp
-
-      if(k<nrow(this_chro))
-      {
-
-        itt = min(it, (this_chro$TSS[k+1]-1))
-
-      }else{
-        itt = it
-      }
-
-      return(itt)
-
-    }))
-
-
-    this_df = this_chro%>%
-      dplyr::mutate(up_start, down_end)
-
-    return(this_df)
-
-
-  }))
-
-
-  write.table(get_unit, regUnit_filename,
-              quote = F, row.names = F, sep = "\t")
-
-
-}
-
-
-#' Generate prot units with genome coordinates
-#' @param protUnit_filename file of protein units of interest
-#' @param mappedProtUnit_filename output filename of protein units with genome coordinates added
-#' @import dplyr data.table magrittr
-#' @keywords get the border coordinates of a list of genes
-#' @export
-get_protGeno = function(protUnit_filename,
-                        mappedProtUnit_filename)
-{
-
-
-  pe = fread(protUnit_filename,
-             stringsAsFactors = F, data.table = F)
-
-  p_g = rbindlist(lapply(1:nrow(pe), function(x) {
-
-    #  if(x%%100 ==0)
-
-    #  cat(x,"\n")
-    po = IRanges(start = pe$start_position[x], end = pe$end_position[x], names = pe$uniprot_accession[x])
-
-    r = proteinToGenome(po, EnsDb.Hsapiens.v86, idType = "uniprot_id")
-
-    ##### gather all of them and take the union of chromosome and position
-
-    if(length(r[[1]])>0)
-    {
-      if("unlistData" %in% slotNames(r[[1]]))
-      {
-        df = r[[1]]@unlistData
-
-        CHROM = rep(as.character(df@seqnames@values[1]), length(df))
-        gstart = df@ranges@start
-        strand = as.character(df@strand@values[1])
-
-        gend = df@ranges@width + df@ranges@start -1
-
-
-        this_df = data.frame(CHROM, gstart, gend,strand,stringsAsFactors = F)%>%
-          unique()
-
-
-      }else{
-        df = r[[1]]
-
-        CHROM = rep(as.character(df@seqnames@values[1]), length(df))
-        gstart = df@ranges@start
-        strand = as.character(df@strand@values[1])
-        gend = df@ranges@width + df@ranges@start -1
-
-
-        this_df = data.frame(CHROM, gstart, gend, strand, stringsAsFactors = F)%>%
-          unique()
-
-      }
-
-      lb = unique(this_df)
-
-
-      final_df = cbind(pe[rep(x,nrow(lb)),], lb)
-
-      return(final_df)
-
-    }
-
-
-  }))
-
-
-  write.table(p_g, mappedProtUnit_filename,
-              quote = F, row.names = F, sep = "\t")
-
-}
-
-
-
-
-
-#' Generate gene borders according to the gtf file given a list of genes of interest
-#' @param gtf_df parsed gtf datafrome, can be loaded from the package
-#' @param geneList a list of gene symbols of interest
-#' @param geneBorder_filename output filename of borders of genes of interest
-#' @import dplyr data.table magrittr
-#' @keywords get ghe border coordinates of a list of genes
-#' @export
-
-get_geneborder = function(gtf_df,
-                          geneList,
-                          geneBorder_filename)
-{
-
-
-  real_genes = gtf_df%>%
-    dplyr::filter(transcript_type == "protein_coding", gene_name %in% geneList)
-
-  gene_sets = unique(real_genes$gene_name)
-  gene_border = rbindlist(lapply(1:length(gene_sets), function(x) {
-    get_gene = gtf_df%>%
-      dplyr::filter(gene_name == gene_sets[x])
-
-    tss = min(get_gene$START)
-    tes = max(get_gene$END)
-
-    df = data.frame(gene_name = gene_sets[x],gene_id = get_gene$gene_id[1],
-                    CHRO = get_gene$CHRO[1], STRAND = get_gene$STRAND[1],
-                    TSS = tss, TES = tes, stringsAsFactors = F)
-
-
-    return(df)
-
-
-  }))
-
-
-  gene_border = gene_border%>%
-    dplyr::arrange(CHRO, TSS)
-
-  write.table(gene_border, geneBorder_filename,
-              quote = F, row.names = F, sep = "\t")
-
-return(gene_border)
-
-}
-
-
 
 
 
