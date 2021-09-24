@@ -230,8 +230,8 @@ if(nrow(map_result)>0)
 
 
 
-
-gb = get_geneborder(gtf_df = parse_gtf,
-                geneList = "TNFRSF4", # a list of gene symbols of interest
-                geneBorder_filename = "test_reg.tsv")
+#
+# gb = get_geneborder(gtf_df = parse_gtf,
+#                 geneList = "TNFRSF4", # a list of gene symbols of interest
+#                 geneBorder_filename = "test_reg.tsv")
 
