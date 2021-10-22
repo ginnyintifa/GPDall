@@ -1,12 +1,13 @@
-# GPDall
+#GPDall
 
 Installation 
 ```{r}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-install_github("ginnyintifa/GPDall")
 
-require(devtool)
+
+require(devtools)
+install_github("ginnyintifa/GPDall")
 
 library(GPDall)
 ```
