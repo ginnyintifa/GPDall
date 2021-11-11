@@ -134,15 +134,15 @@ Under "regulatory" mode, user may obtain the desired regulatory unit file by fir
 
 ```
 
-### Notice to use converted vcf files such as files names with TCGA barcodes 
+### Grab sample names from the .vcf files' file names 
 
-When the sample IDs are not indicated in the .vcf file starting with #Tumor, and are indicated in the filename of the .vcf files, users can tell the program how to grab the sample names using the following 3 parameters in `gpd_workflow` function:
+When the sample IDs are not indicated in the .vcf file starting with `#Tumor`, and are indicated in the filename of the .vcf files, users can tell the program how to grab the sample names using the following 3 parameters in `gpd_workflow` function:
 
 ```{r}
    grab_start_string = "TCGA,
    grab_sep = "-",
    grab_number = 7,
 ```
-The above example demonstrate grabbing sample names with TCGA barcode patterns that are seen in the file name of the vcf files, for example, "sample_TCGA-19-1385-01A-02W-0643-08_mutations.tsv". With the above parameters, the program take `TCGA-19-1385-01A-02W-0643-08` as sample name. 
+The above example demonstrates grabbing sample names with TCGA barcode patterns that are seen in the file name of the vcf files, for example, "sample_TCGA-19-1385-01A-02W-0643-08_mutations.tsv". With the above parameters, the program take `TCGA-19-1385-01A-02W-0643-08` as sample name. 
 
 
