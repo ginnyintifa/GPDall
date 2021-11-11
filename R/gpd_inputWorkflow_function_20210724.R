@@ -203,7 +203,10 @@ if(nrow(map_result)>0)
 
 
   unique_units = unique(map_result$unit_info)
-  patients = unlist(lapply(1:length(filenames), function(x) patientInfo_extract(filenames[x])))
+  patients = unlist(lapply(1:length(filenames), function(x) patientInfo_extract(filenames[x],
+                                                                                grab_start_string = grab_start_string,
+                                                                                grab_sep = grab_sep,
+                                                                                grab_number = grab_number)))
 
   mat = matrix(0,length(unique_units), length(patients))
 
