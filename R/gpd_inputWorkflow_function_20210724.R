@@ -3,6 +3,7 @@
 #' mapping vcf to various units
 #'
 #' @param vcf_folderPath the path to the folder of vcf files
+#' @param grab_start_string a string indicating the sample's name
 #' @param mapping_vcf_to mapping mode, one of "GTF","regulatory","protUnits","userDefine"
 #' @param mapTo_fileName file of protein units to be mapped with genome coordinates
 #' @param gtf_df gtf dataframe to be mapped, can be loaded with the package
@@ -16,6 +17,9 @@
 #' @examples
 
 gpd_workflow = function(vcf_folderPath,
+                        grab_start_string = NULL,
+                        grab_sep = NULL,
+                        grab_number = NULL,
                         mapping_vcf_to,
                         mapTo_fileName,
                         gtf_df,
@@ -53,7 +57,10 @@ gpd_workflow = function(vcf_folderPath,
     map_result = rbindlist(lapply(1:length(filenames), function(x) {
       cat(x, "\n")
 
-      pb = patientInfo_extract(filenames[x])
+      pb = patientInfo_extract(filenames[x],
+                               grab_start_string = grab_start_string,
+                               grab_sep = grab_sep,
+                               grab_number = grab_number)
 
       matched = mapVCFtoProtUnits (vcf_file = filenames[x],
                                    protMappedGeno_file = mapTo_fileName,
@@ -85,7 +92,10 @@ gpd_workflow = function(vcf_folderPath,
       map_result = rbindlist(lapply(1:length(filenames), function(x) {
 
         cat(x, "\n")
-        pb = patientInfo_extract(filenames[x])
+        pb = patientInfo_extract(filenames[x],
+                                 grab_start_string = grab_start_string,
+                                 grab_sep = grab_sep,
+                                 grab_number = grab_number)
 
         tt = Sys.time()
         matched = mapVCFtoGTF(vcf_file = filenames[x],
@@ -119,7 +129,10 @@ gpd_workflow = function(vcf_folderPath,
 
         map_result = rbindlist(lapply(1:length(filenames), function(x) {
           cat(x, "\n")
-          pb = patientInfo_extract(filenames[x])
+          pb = patientInfo_extract(filenames[x],
+                                   grab_start_string = grab_start_string,
+                                   grab_sep = grab_sep,
+                                   grab_number = grab_number)
 
           matched = mapVCFtoReg(vcf_file = filenames[x],
                                 reg_file = reg_fileName,
@@ -145,7 +158,10 @@ gpd_workflow = function(vcf_folderPath,
         {
           map_result = rbindlist(lapply(1:length(filenames), function(x) {
             cat(x, "\n")
-            pb = patientInfo_extract(filenames[x])
+            pb = patientInfo_extract(filenames[x],
+                                     grab_start_string = grab_start_string,
+                                     grab_sep = grab_sep,
+                                     grab_number = grab_number)
 
             matched = mapVCFtoUD(vcf_file = filenames[x],   #### can be parallelized too, advance this later
                                  ud_file = ud_fileName,

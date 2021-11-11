@@ -735,7 +735,11 @@ mapVCFtoUD = function(vcf_file,
 
 
 
-patientInfo_extract =function(vcf_file){
+patientInfo_extract =function(vcf_file,
+                              grab_start_string,
+                              grab_sep,
+                              grab_number){
+
 
 
   f = readLines(vcf_file)
@@ -747,11 +751,15 @@ patientInfo_extract =function(vcf_file){
     b = unlist(strsplit(f_t_split[1],split = "Sample="))[2]
   }else{
 
-    sn = unlist(strsplit(vcf_file, split = "/"))
-    sl = length(sn)
-    tag = unlist(strsplit(sn[sl],split = "-"))[1]
+    seps = unlist(strsplit(vcf_file, sep = grab_sep, fixed = T))
 
-    b = paste0("nonSample",tag)
+    w = which(seps == grab_start_string)
+
+    wend = w+grab_number-1
+
+    tcga_tag = paste(seps[w:wend], collapse = grab_sep)
+
+    b = tcga_tag
   }
 
 

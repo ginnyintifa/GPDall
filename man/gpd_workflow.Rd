@@ -6,6 +6,9 @@
 \usage{
 gpd_workflow(
   vcf_folderPath,
+  grab_start_string = NULL,
+  grab_sep = NULL,
+  grab_number = NULL,
   mapping_vcf_to,
   mapTo_fileName,
   gtf_df,
@@ -17,6 +20,8 @@ gpd_workflow(
 }
 \arguments{
 \item{vcf_folderPath}{the path to the folder of vcf files}
+
+\item{grab_start_string}{a string indicating the sample's name}
 
 \item{mapping_vcf_to}{mapping mode, one of "GTF","regulatory","protUnits","userDefine"}
 
