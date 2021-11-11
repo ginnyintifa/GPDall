@@ -750,14 +750,20 @@ patientInfo_extract =function(vcf_file,
     f_t_split = unlist(strsplit(f_t, split = ","))
     b = unlist(strsplit(f_t_split[1],split = "Sample="))[2]
   }else{
+    # vcf_file = "/Users/ginny/Google Drive/sample_TCGA-12-1088-01A-01W-0611-08_mutations.tsv"
+    # grab_start_string = "TCGA"
+    # grab_sep = "-"
+    # grab_number = 7
 
-    seps = unlist(strsplit(vcf_file, split = grab_sep, fixed = T))
+    seps = unlist(strsplit(vcf_file, split = grab_start_string, fixed = T))
 
-    w = which(seps == grab_start_string)
+    rst = seps[2]
 
-    wend = w+grab_number-1
+    rst_seps = unlist(strsplit(rst, split = grab_sep, fixed = T))
+    grst = paste(rst_seps[1:(grab_number-1)], collapse = grab_sep)
 
-    tcga_tag = paste(seps[w:wend], collapse = grab_sep)
+
+    tcga_tag = paste0(grab_start_string, grst)
 
     b = tcga_tag
   }

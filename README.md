@@ -136,7 +136,7 @@ Under "regulatory" mode, user may obtain the desired regulatory unit file by fir
 
 ### Grab sample names from the .vcf files' file names 
 
-When the sample IDs are not indicated in the .vcf file starting with `#Tumor`, and are indicated in the filename of the .vcf files, users can tell the program how to grab the sample names using the following 3 parameters in `gpd_workflow` function:
+When the sample IDs are not indicated in the .vcf file starting with `#TUMOR`, and are indicated in the filename of the .vcf files, users can tell the program how to grab the sample names using the following 3 parameters in `gpd_workflow` function:
 
 ```{r}
    grab_start_string = "TCGA",
