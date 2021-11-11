@@ -751,7 +751,7 @@ patientInfo_extract =function(vcf_file,
     b = unlist(strsplit(f_t_split[1],split = "Sample="))[2]
   }else{
 
-    seps = unlist(strsplit(vcf_file, sep = grab_sep, fixed = T))
+    seps = unlist(strsplit(vcf_file, split = grab_sep, fixed = T))
 
     w = which(seps == grab_start_string)
 
