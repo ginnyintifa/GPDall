@@ -298,87 +298,36 @@ mapVCFtoProtUnits = function(vcf_file,
                              vcfMapped_protUnitCount_outputName)
 {
 
+
+
+  # vcf_file = filenames[x]
+  # protMappedGeno_file = mapTo_fileName
+  # vcfMapped_prot_outputName = paste0(output_folderPath, output_tag,"_",
+  #                                    pb,"_", "mapToProt.tsv")
+  # vcfMapped_protUnitCount_outputName = paste0(output_folderPath, output_tag,"_",
+  #                                             pb,"_", "mapToProtCount.tsv")
+
+
   vcf = fread(vcf_file, skip = "#CHROM",
               stringsAsFactors = F, data.table = F)
 
   colnames(vcf) = gsub("#","",colnames(vcf))
 
 
- # if(genoMapped == T)
-  #{
-    p_g = fread(protMappedGeno_file, stringsAsFactors = F, data.table = F)
-
-  #}else{
-
-  #   pe = fread(protUnit_file,
-  #              stringsAsFactors = F, data.table = F)
-  #
-  #   p_g = rbindlist(lapply(1:nrow(pe), function(x) {
-  #
-  #     if(x%%100 ==0)
-  #       cat(x,"\n")
-  #     po = IRanges(start = pe$start_position[x], end = pe$end_position[x], names = pe$uniprot_accession[x])
-  #
-  #     r = proteinToGenome(po, EnsDb.Hsapiens.v86, idType = "uniprot_id")
-  #
-  #     ##### gather all of them and take the union of chromosome and position
-  #
-  #     if(length(r[[1]])>0)
-  #     {
-  #       if("unlistData" %in% slotNames(r[[1]]))
-  #       {
-  #         df = r[[1]]@unlistData
-  #
-  #         CHROM = rep(as.character(df@seqnames@values[1]), length(df))
-  #         gstart = df@ranges@start
-  #         strand = as.character(df@strand@values[1])
-  #
-  #         gend = df@ranges@width + df@ranges@start -1
-  #
-  #
-  #         this_df = data.frame(CHROM, gstart, gend,strand,stringsAsFactors = F)%>%
-  #           unique()
-  #
-  #
-  #       }else{
-  #         df = r[[1]]
-  #
-  #         CHROM = rep(as.character(df@seqnames@values[1]), length(df))
-  #         gstart = df@ranges@start
-  #         strand = as.character(df@strand@values[1])
-  #         gend = df@ranges@width + df@ranges@start -1
-  #
-  #
-  #         this_df = data.frame(CHROM, gstart, gend, strand, stringsAsFactors = F)%>%
-  #           unique()
-  #
-  #       }
-  #
-  #       lb = unique(this_df)
-  #
-  #
-  #       final_df = cbind(pe[rep(x,nrow(lb)),], lb)
-  #
-  #       return(final_df)
-  #
-  #     }
-  #
-  #
-  #   }))
-  #
-  #
-  #   write.table(p_g, protMappedGeno_outputName,
-  #               quote = F, row.names = F, sep = "\t")
-  #
-  # }
+  p_g = fread(protMappedGeno_file, stringsAsFactors = F, data.table = F)
 
   matched = rbindlist(lapply(1:nrow(vcf), function(x) {
-
 
     #cat(x, "\n")
     this_chrom = gsub("chr","", vcf$CHROM[x])
     this_pos = vcf$POS[x]
+    if("uid" %in% colnames(vcf))
+    {
+      this_uid = vcf$uid[x]
 
+    }else{
+      this_uid = x
+    }
 
     get_p_g =  p_g%>%
       dplyr::filter(CHROM == this_chrom)%>%
@@ -389,8 +338,9 @@ mapVCFtoProtUnits = function(vcf_file,
 
       p_g_info = get_p_g%>%
         dplyr::mutate(prot_info = paste(uniprot_accession, gene_name, start_position, end_position, unit_name, unit_label, sep = "_"),
-                      geno_info = paste(CHROM, gstart, gend, strand, sep = "_"))%>%
-        dplyr::select(prot_info, geno_info)
+                      geno_info = paste(CHROM, gstart, gend, strand, sep = "_"),
+                      ori_mut = rep(this_uid, nrow(get_p_g)))%>%
+        dplyr::select(prot_info, geno_info, ori_mut)
 
       this_df = cbind(p_g_info, vcf[rep(x, nrow(p_g_info)),])
 
@@ -414,6 +364,9 @@ mapVCFtoProtUnits = function(vcf_file,
 
     matched_count = matched%>%
       dplyr::select(-geno_info)%>%
+      dplyr::select(-POS)%>%
+     # dplyr::select(-ori_mut)%>%
+      unique()%>%
       dplyr::group_by(prot_info)%>%
       dplyr::mutate(count = n())
 

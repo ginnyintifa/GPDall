@@ -30,16 +30,17 @@ gpd_workflow = function(vcf_folderPath,
 )
 
 {
-  # vcf_folderPath = "/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/vcf_folder_20210621/"
+  # vcf_folderPath = "/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/test_gbm_20211222/"
+  # grab_start_string = "TCGA"
+  # grab_sep = "-"
+  # grab_number = 7
   # mapping_vcf_to = "protUnits"
-  # mapTo_fileName = "/Users/ginny/Desktop/mapped_protUnits.tsv"
+  # mapTo_fileName = "/Users/ginny/Google Drive/GPDall/mapped_ptm_pfam_combine_ENSGcollapse.tsv"
   # gtf_df = parse_gtf
   # reg_fileName = NULL
   # ud_fileName = NULL
-  # output_folderPath = "/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/test_vcf_20210906/"
-  # output_tag = "test_protUnits_sampleMapped"
-
-
+  # output_folderPath = "/Users/ginny/Google Drive/R_GPD/GPD_package_0401/modiInput_202104/test_gbm_result_20211221/"
+  # output_tag = "test_protUnits"
 
 
   files = list.files(vcf_folderPath)
@@ -54,6 +55,7 @@ gpd_workflow = function(vcf_folderPath,
   if(mapping_vcf_to == "protUnits")
   {
 
+   # x = 1
     map_result = rbindlist(lapply(1:length(filenames), function(x) {
       cat(x, "\n")
 
@@ -216,7 +218,10 @@ if(nrow(map_result)>0)
     this_p = patients[i]
 
     sli = map_result%>%
-      dplyr::filter(barcode == this_p)
+      dplyr::filter(barcode == this_p)%>%
+      dplyr::select(unit_info, count)%>%
+      unique()
+
 
     ur = match(sli$unit_info, unique_units)
 
